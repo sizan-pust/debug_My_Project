@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "26498716227",
+    "project_id": "projectshow-5f97c",
+    "storage_bucket": "projectshow-5f97c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26498716227:android:e3ea08b7c4a05f5e6fbaf6",
+        "android_client_info": {
+          "package_name": "com.example.payit_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDR9OrJ3OYdZ5BwGyY32oMg13HKJPX9lug"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
