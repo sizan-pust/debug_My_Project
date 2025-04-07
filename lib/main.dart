@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:payit_1/SplashScreen.dart';
 import 'package:payit_1/home_page.dart';
 import 'package:payit_1/login.dart';
+import 'package:payit_1/mobile_recharge_procedures/recipient_page.dart';
 import 'package:payit_1/registration_procedures/mobile_num_entry_page.dart';
 import 'package:payit_1/registration_procedures/otp_verification.dart';
 import 'package:payit_1/registration_procedures/set_name&pic.dart';
@@ -56,6 +57,7 @@ class PayitApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomePage(),
         '/sendMoney': (context) => SendMoneyPage(),
+        '/mobileRecharge': (context) => MobileRechargePage(),
       },
       home: FutureBuilder<DocumentSnapshot>(
         future: _checkUserRegistration().catchError((_) => null),

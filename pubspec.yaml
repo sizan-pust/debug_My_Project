@@ -40,6 +40,10 @@ dependencies:
   firebase_core: ^3.12.0
   firebase_auth: ^5.5.0
   cloud_firestore: ^5.6.4
+  permission_handler: ^11.3.1
+  flutter_contacts: ^1.1.9+2
+  intl: ^0.20.2
+  mobile_scanner: ^6.0.7
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +76,12 @@ flutter:
      - assets/images/warning_banner.jpg
      - assets/images/fnf.png
      - assets/images/success.jpg
+     - assets/images/airtel_logo.png
+     - assets/images/banglalink_logo.png
+     - assets/images/gp_logo.png
+     - assets/images/robi_logo.png
+     - assets/images/teletalk_logo.png
+     - assets/images/skitto_logo.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

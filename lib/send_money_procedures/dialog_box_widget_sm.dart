@@ -23,34 +23,48 @@ class WidgetOfDialogBox extends StatelessWidget {
     final firestore = FirebaseFirestore.instance;
     final currentUser = FirebaseAuth.instance.currentUser;
 
-    if (currentUser?.phoneNumber == null) {
-      throw Exception('User not logged in');
-    }
-
-    final amount = double.parse(this.amount);
-    final senderRef =
-        firestore.collection('users').doc(currentUser!.phoneNumber);
-    final recipientRef = firestore.collection('users').doc(recipientNumber);
-
     try {
+      if (currentUser?.phoneNumber == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final amount = double.parse(this.amount);
+      final senderRef =
+          firestore.collection('users').doc(currentUser!.phoneNumber);
+      final recipientRef = firestore.collection('users').doc(recipientNumber);
+
       await firestore.runTransaction((transaction) async {
         final senderDoc = await transaction.get(senderRef);
+        final senderBalance = (senderDoc.data()!['balance'] as num).toDouble();
+
         final recipientDoc = await transaction.get(recipientRef);
-
-        final senderBalance = (senderDoc.data()?['balance'] as num).toDouble();
         final recipientBalance =
-            (recipientDoc.data()?['balance'] as num).toDouble();
+            (recipientDoc.data()!['balance'] as num).toDouble();
 
-        if (senderBalance < amount) throw Exception('Insufficient balance');
+        if (senderBalance < amount) {
+          throw Exception('Insufficient balance');
+        }
 
         transaction.update(senderRef, {'balance': senderBalance - amount});
         transaction
             .update(recipientRef, {'balance': recipientBalance + amount});
       });
 
+      // ✅ Send SMS after successful transaction
+      // final senderNumber = currentUser.phoneNumber!;
+      // final senderMessage =
+      //     'Send money to $recipientNumber successful. Amount Tk $amount';
+      // final recipientMessage =
+      //     'You have received Tk $amount from $senderNumber';
+
+      // await sendSMS(senderNumber, senderMessage);
+      // await sendSMS(recipientNumber, recipientMessage);
+
+      // ✅ Show confirmation dialog
       showDialog(
         context: context,
         builder: (context) => Dialog(
+          insetPadding: const EdgeInsets.all(20),
           child: WidgetOfConfirmation(
             recipientName: recipientName,
             recipientNumber: recipientNumber,
@@ -71,6 +85,7 @@ class WidgetOfDialogBox extends StatelessWidget {
           ],
         ),
       );
+      print('Transaction Error: $e');
     }
   }
 

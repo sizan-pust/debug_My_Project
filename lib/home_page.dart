@@ -1,18 +1,21 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:payit_1/more.dart';
+import 'package:payit_1/qr_scan.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  bool _showBalance = false; // State to track if balance is visible
+  bool _showBalance = false;
+  Timer? _balanceTimer;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
@@ -22,147 +25,163 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void dispose() {
+    _balanceTimer?.cancel(); // Cancel timer on dispose
+    super.dispose();
+  }
+
+  void _handleBalanceTap() {
+    // Cancel existing timer if any
+    _balanceTimer?.cancel();
+
+    setState(() {
+      _showBalance = true;
+    });
+
+    // Start new timer
+    _balanceTimer = Timer(const Duration(milliseconds: 3500), () {
+      if (mounted) {
+        // Check if widget is still in tree
+        setState(() {
+          _showBalance = false;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_currentUser?.phoneNumber == null) {
       return const Scaffold(
         body: Center(child: Text('User not authenticated')),
       );
     }
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.purple,
-        elevation: 0,
-        title: StreamBuilder<DocumentSnapshot>(
-          stream: _firestore
-              .collection('users')
-              .doc(_currentUser!.phoneNumber)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return const Text('Error loading data');
-            }
-
-            if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const Text('Loading...');
-            }
-            final userData = snapshot.data!.data() as Map<String, dynamic>;
-            final firstName = userData['firstName'] ?? '';
-            final lastName = userData['lastName'] ?? '';
-
-            return Text(
-              '$firstName $lastName'.trim(),
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.white,
-              ),
-            );
-          },
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // Notification action
-            },
-          ),
-        ],
-      ),
       body: Column(
         children: [
-          // User Info Section
-          Container(
-            color: Colors.purple,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4), //8
+          // 🔴 Curved Header
+          ClipPath(
+            clipper: CurvedAppBarClipper(),
+            child: Container(
+              color: Colors.purple,
+              padding: const EdgeInsets.fromLTRB(16, 40, 16, 24),
+              width: double.infinity,
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: _firestore
+                    .collection('users')
+                    .doc(_currentUser!.phoneNumber)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Center(
+                      child: Text('Error loading user',
+                          style: TextStyle(color: Colors.white)),
+                    );
+                  }
 
-            child: StreamBuilder<DocumentSnapshot>(
-              stream: _firestore
-                  .collection('users')
-                  .doc(_currentUser.phoneNumber)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Text('Error loading user data');
-                }
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return const LinearProgressIndicator();
-                }
+                  final userData =
+                      snapshot.data!.data() as Map<String, dynamic>;
+                  final firstName = userData['firstName'] ?? '';
+                  final lastName = userData['lastName'] ?? '';
+                  final mobileNumber = userData['mobileNumber'] ?? '';
+                  final profilePicture = userData['profilePicture']?.toString();
+                  final balance = (userData['balance'] ?? 0.0).toDouble();
 
-                final userData = snapshot.data!.data() as Map<String, dynamic>;
-                final firstName = userData['firstName'] ?? '';
-                final lastName = userData['lastName'] ?? '';
-                final mobileNumber = userData['mobileNumber'] ?? '';
-                final profilePicture = userData['profilePicture']?.toString();
-                final balance = (userData['balance'] ?? 0.0).toDouble();
-
-                return Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.white,
-                      backgroundImage: profilePicture != null
-                          ? MemoryImage(base64Decode(profilePicture))
-                          : null,
-                      child: profilePicture == null
-                          ? Text(
-                              _getInitials(firstName, lastName),
-                              style: const TextStyle(color: Colors.purple),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            mobileNumber.isNotEmpty
-                                ? "$mobileNumber, General Consumer eAC"
-                                : "Unknown Number",
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 14),
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor: Colors.white,
+                            backgroundImage: profilePicture != null
+                                ? MemoryImage(base64Decode(profilePicture))
+                                : null,
+                            child: profilePicture == null
+                                ? Text(
+                                    _getInitials(firstName, lastName),
+                                    style: const TextStyle(
+                                        color: Colors.purple,
+                                        fontWeight: FontWeight.bold),
+                                  )
+                                : null,
                           ),
-                          const SizedBox(height: 4),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _showBalance = !_showBalance;
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.purple,
-                            ),
-                            child: const Text("Tap for Balance"),
-                          ),
-                          const SizedBox(height: 8),
-                          AnimatedOpacity(
-                            duration: const Duration(seconds: 1),
-                            opacity: _showBalance ? 1.0 : 0.0,
-                            child: Text(
-                              _showBalance
-                                  ? "৳ ${balance.toStringAsFixed(2)}"
-                                  : "",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "$firstName $lastName",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
+                              Text(
+                                "$mobileNumber, General Consumer",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                );
-              },
+                      const SizedBox(height: 1),
+                      Row(
+                        children: [
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: _handleBalanceTap,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _showBalance
+                                    ? "৳ ${balance.toStringAsFixed(2)}"
+                                    : "Tap for Balance",
+                                style: const TextStyle(
+                                  color: Colors.purple,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.notifications,
+                                color: Colors.white),
+                            onPressed: () {
+                              // TODO: Notification action
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          // Services Section
+
+          const SizedBox(height: 4),
+
+          // 🔵 Services Section
           Expanded(
             child: GridView.count(
               crossAxisCount: 4,
@@ -174,8 +193,7 @@ class _HomePageState extends State<HomePage> {
                     context, Icons.send_to_mobile, "Send Money", '/sendMoney'),
                 _buildServiceTile(context, Icons.phone_android,
                     "Mobile Recharge", '/mobileRecharge'),
-                _buildServiceTile(context, Icons.money, "Cash Out",
-                    '/cashOut'), // Add the cashOut page
+                _buildServiceTile(context, Icons.money, "Cash Out", '/cashOut'),
                 _buildServiceTile(context, Icons.shopping_cart, "Merchant Pay",
                     '/merchantPay'),
                 _buildServiceTile(context, Icons.add, "Add Money", '/addMoney'),
@@ -196,7 +214,8 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          // Ad Section
+
+          // 🔘 Ad Section
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Container(
@@ -212,11 +231,23 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      // Bottom Navigation Bar
+
+      // 🔻 Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.white,
         selectedItemColor: Colors.purple,
         unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          if (index == 1) {
+            // Scan QR index
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const QRScanScreen()));
+          }
+          if (index == 2) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const MoreScreen()));
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.qr_code), label: "Scan QR"),
@@ -230,7 +261,12 @@ class _HomePageState extends State<HomePage> {
       BuildContext context, IconData icon, String label, String route) {
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, route); // Navigate to the route
+        if (route == '/scanQR') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => const QRScanScreen()));
+        } else {
+          Navigator.pushNamed(context, route);
+        }
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -250,4 +286,23 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+class CurvedAppBarClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 30); // Reduced curve height from 30 to 20
+    path.quadraticBezierTo(
+        size.width / 2,
+        size.height, // Move control point higher
+        size.width,
+        size.height - 30); // Reduced curve height from 30 to 20
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
